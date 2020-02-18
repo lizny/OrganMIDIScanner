@@ -3,18 +3,20 @@
 
 // Pedalboard
 /*
+uint16_t invertState = 0;
 const uint8_t NUM_MCP = 2;
 const uint8_t NUM_PINS = 16;
-const uint8_t CHANNEL = 1;
+const uint8_t CHANNEL = 0;  // shows up as 1
 */
 // Great
-
+uint16_t invertState = 65535;
 const uint8_t NUM_MCP = 4;
 const uint8_t NUM_PINS = 16;
-const uint8_t CHANNEL = 2;
+const uint8_t CHANNEL = 1;
 
 // Swell 
 /*
+uint16_t invertState = 65535;
 const uint8_t NUM_MCP = 4;
 const uint8_t NUM_PINS = 16;
 const uint8_t CHANNEL = 3;
@@ -37,8 +39,5 @@ const uint8_t pedalAddresses[4][16] = { // map port expanders and pins to MIDI n
     84,85,86,87, 88,89,90,91, 92,93,94,95, 96,97,98,99
   }
 };
-
-
-
 
 #endif
