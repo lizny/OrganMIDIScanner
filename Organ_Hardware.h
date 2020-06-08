@@ -1,28 +1,59 @@
 #ifndef ORGAN_HARDWARE_H_
 #define ORGAN_HARDWARE_H_
 
+#define LIGHTS false
+
+bool KEYBOARD =  false;
+bool SHOES = false;
+//bool PISTONS = false;
+
 // Pedalboard
 /*
-uint16_t invertState = 0;
+KEYBOARD = true;
+uint16_t invertState = 0; 
 const uint8_t NUM_MCP = 2;
 const uint8_t NUM_PINS = 16;
 const uint8_t CHANNEL = 0;  // shows up as 1
+const uint8_t NUM_SHOES = 0;
 */
 // Great
-uint16_t invertState = 65535;
+/*
+KEYBOARD = true;
+uint16_t invertState = 65535; 
 const uint8_t NUM_MCP = 4;
 const uint8_t NUM_PINS = 16;
 const uint8_t CHANNEL = 1;
+const uint8_t NUM_SHOES = 3;
+*/
 
-// Swell 
+// Swell
 /*
+KEYBOARD = true;
 uint16_t invertState = 65535;
 const uint8_t NUM_MCP = 4;
 const uint8_t NUM_PINS = 16;
-const uint8_t CHANNEL = 3;
+const uint8_t CHANNEL = 2;
+const uint8_t NUM_SHOES = 0;
 */
 
-const uint8_t pedalAddresses[4][16] = { // map port expanders and pins to MIDI notes
+// Controls
+// Expression Pedals
+
+const uint8_t CHANNEL = 15;
+const uint8_t NUM_SHOES = 3;
+uint16_t invertState = 65535;
+const uint8_t NUM_MCP = 0;
+const uint8_t NUM_PINS = 16;
+
+// DATA
+
+const uint8_t AnalogPins[] = { // used for expression shoes 
+    A0,A1,A2                  // correspond to left, center, right shoes
+  };
+const uint8_t ShoeCodes[] = { 61,62,63};
+
+
+const uint8_t noteAddresses[8][16] = { // map port expanders and pins to MIDI notes
 	{  // ic2 address 0
 		36,37,38,39, 40,41,42,43, 44,45,46,47, 48,49,50,51 
 	}

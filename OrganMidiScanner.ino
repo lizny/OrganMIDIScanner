@@ -1,4 +1,4 @@
-±#define DEBUG false
+#define DEBUG true
 
 #include <Wire.h>
 #include "MIDIUSB.h"
@@ -25,23 +25,38 @@ void noteOff(byte channel, byte pitch, byte velocity) {
   MidiUSB.flush();
 }
 
-Adafruit_MCP23017  mcpArray [NUM_MCP];  
-uint16_t prevPinState [NUM_MCP];
-uint16_t prevDelayPinState [NUM_MCP];
-uint16_t pinState [NUM_MCP];
+void controlChange(byte channel, byte control, byte value) {
+  // First parameter is the event type (0x0B = control change).
+  // Second parameter is the event type, combined with the channel.
+  // Third parameter is the control number number (0-119).
+  // Fourth parameter is the control value (0-127).
+  midiEventPacket_t event = {0x0B, 0xB0 | channel, control, value};
+  MidiUSB.sendMIDI(event);
+}
+ 
+Adafruit_MCP23017  mcpArray [8];  
+uint16_t prevPinState [8];
+uint16_t prevDelayPinState [8];
+uint16_t pinState [8];
 unsigned long lastDebounceTime = 0; 
+unsigned long lastPedalDebounceTime = 0; 
 unsigned long debounceDelay = 50;
 
-#define DEBUG true
+
 int led = 13;
 
 void setup() {  
     Serial.begin(115200);
+
      pinMode(led, OUTPUT);
     if (DEBUG) { 
+      delay (1000);
       noteOn(CHANNEL, 64, 127);
+      controlChange(15, 66, 0);
        digitalWrite(led, HIGH);
+         delay (1000);
        }
+       
     for (int a = 0; a < NUM_MCP; a++){
       mcpArray[a].begin(a);  
       for (int p = 0; p < NUM_PINS; p++){
@@ -53,29 +68,44 @@ void setup() {
       }
     }  
     if (DEBUG) { 
-      delay (2000);
       noteOff(CHANNEL, 64, 127); 
-       digitalWrite(led, LOW);
+      controlChange(15, 66, 127);
+      digitalWrite(led, LOW);
     }
 }
 
-
-
 void loop() {
- key_refresh(0); 
+ read_keyboard(); 
+ read_expression(); 
+ 
+ delay(10);
 }
   
 const static int8_t falling = LOW - HIGH;
 const static int8_t rising = HIGH - LOW;
 
 const uint8_t velocity = 0b1111111; // Maximum velocity (0b1111111 = 0x7F = 127)
- 
-void key_refresh(int pin) 
+  
+int oldExpressionValue[3] = {0,0,0};
+
+void read_expression(void) {
+  for ( int i = 0; i < NUM_SHOES; i++){
+    int sensorValue = analogRead(AnalogPins[i]);
+    int expressionValue = sensorValue / 8 ;  // convert 0-1023 to 0-127
+    if (expressionValue != oldExpressionValue[i]){
+      controlChange(CHANNEL, ShoeCodes[i], expressionValue); 
+      oldExpressionValue[i] = expressionValue;
+    }
+  }
+}
+
+
+void read_keyboard(void) 
 {
   bool changed = 0; 
   for (int a = 0; a < NUM_MCP; a++){                       // for each port expander...
     prevPinState[a] = pinState[a];                         // store previous pin state
-    pinState[a] = mcpArray[a].readGPIOAB() ; // ^ invertState;  // read each pin and flip because pulled high by internal resister
+    pinState[a] = mcpArray[a].readGPIOAB() ;              // read each pin and 
     changed = (prevPinState[a] != pinState[a]);            // true if any pin on the chip is different
     int8_t note;
     
@@ -91,7 +121,7 @@ void key_refresh(int pin)
         prev  = bitRead(prevDelayPinState[a],i);            // read that pin's previous state 
         int8_t stateChange = state - prev;                  // compare
  
-        note = pedalAddresses[a][i];                        // pull the correct note for this expander and pin from the key mapping array
+        note = noteAddresses[a][i];                        // pull the correct note for this expander and pin from the key mapping array
  
         if (stateChange == rising) {                        // Key is pressed
            if (DEBUG) {  digitalWrite(led, HIGH); }
