@@ -1,4 +1,4 @@
-#define DEBUG true
+#define DEBUG false
 
 #include <Wire.h>
 #include "MIDIUSB.h"
@@ -42,36 +42,34 @@ unsigned long lastDebounceTime = 0;
 unsigned long lastPedalDebounceTime = 0; 
 unsigned long debounceDelay = 50;
 
-
 int led = 13;
 
 void setup() {  
     Serial.begin(115200);
-
-     pinMode(led, OUTPUT);
-    if (DEBUG) { 
-      delay (1000);
-      noteOn(CHANNEL, 64, 127);
-      controlChange(15, 66, 0);
-       digitalWrite(led, HIGH);
-         delay (1000);
-       }
+    pinMode(led, OUTPUT);
+    
        
-    for (int a = 0; a < NUM_MCP; a++){
+    for (int a = 0; a < 8; a++){
+      if (DEBUG) { 
+          controlChange(15, a, 0);
+          digitalWrite(led, HIGH);
+          delay (200);
+          } 
       mcpArray[a].begin(a);  
-      for (int p = 0; p < NUM_PINS; p++){
+      for (int p = 0; p < NUM_PINS; p++){ 
         mcpArray[a].pinMode(p, INPUT); // for output to solenoids change this
         mcpArray[a].pullUp(p, HIGH);  // turn on a 100K pullup internally
         pinState[a] = mcpArray[a].readGPIOAB(); 
         prevPinState[a] = pinState[a];
         prevDelayPinState[a] = pinState[a];    
       }
-    }  
-    if (DEBUG) { 
-      noteOff(CHANNEL, 64, 127); 
-      controlChange(15, 66, 127);
+      if (DEBUG) { 
+      controlChange(15, a, 127);
       digitalWrite(led, LOW);
-    }
+      delay (200);
+      }
+    }  
+    
 }
 
 void loop() {
@@ -103,7 +101,7 @@ void read_expression(void) {
 void read_keyboard(void) 
 {
   bool changed = 0; 
-  for (int a = 0; a < NUM_MCP; a++){                       // for each port expander...
+  for (int a = 0; a < 8; a++){                            // for each port expander...
     prevPinState[a] = pinState[a];                         // store previous pin state
     pinState[a] = mcpArray[a].readGPIOAB() ;              // read each pin and 
     changed = (prevPinState[a] != pinState[a]);            // true if any pin on the chip is different
@@ -116,21 +114,25 @@ void read_keyboard(void)
     if ((millis() - lastDebounceTime) > debounceDelay) {
        int8_t state, prev; 
        for (int i = 0; i < 16; i++) {                       // state of all pins is stable, so review each pin
-           
         state = bitRead(pinState[a],i);                     // read a pin 
         prev  = bitRead(prevDelayPinState[a],i);            // read that pin's previous state 
         int8_t stateChange = state - prev;                  // compare
- 
-        note = noteAddresses[a][i];                        // pull the correct note for this expander and pin from the key mapping array
- 
+        note = noteAddresses[a][i];                         // pull the correct note for this expander and pin from the key mapping array
         if (stateChange == rising) {                        // Key is pressed
            if (DEBUG) {  digitalWrite(led, HIGH); }
-           noteOn( CHANNEL, note, 64);
+           if (a < 5){
+            noteOn( CHANNEL, note, 64);
+           } else{
+            noteOn( PCHANNEL, note, 64);
+           }
         }  
-        
         if (stateChange == falling)  {                      // Key is released
            if (DEBUG) {  digitalWrite(led, LOW); }
-           noteOff( CHANNEL, note, 64);                    
+           if (a < 5){
+             noteOff( CHANNEL, note, 64); 
+           } else {
+             noteOff( PCHANNEL, note, 64);      
+           }
         }
       }                                                     // end for each pin
       prevDelayPinState[a] = pinState[a];                   // reset debounce state
